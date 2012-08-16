@@ -1,0 +1,49 @@
+@import "..\..\public\css\sofiapro/index.css"
+@import "..\..\public\css\droid-sans-mono/index.css"
+@import "..\..\public\css\twitter/bootstrap.min.css"
+@import "..\..\public\css\twitter/bootstrap-responsive.min.css"
+@import "..\..\public\css\font-awesome/index.css"
+@import "nib"
+
+body
+  font: 16px "SofiaProLightRegular", "Lucida Grande", Helvetica, Arial, sans-serif
+  padding-top: 1em
+
+  h1.title
+    text-align: center
+    margin-bottom: 1em
+
+  .task
+    clear: both
+    border: 1px solid #ddd
+    border-radius: 3px
+    margin: 0.5em 0 0 0
+    padding: 0.5em
+    background-color: #eee
+
+    form
+      margin: 0
+
+  .bucket
+    h3
+      text-align: center
+      border-bottom: 1px solid #ddd
+    &.selected
+      h3
+        color: #f60
+
+  #command-box
+    position: absolute
+    bottom: 0
+    width: 100%
+    height: 26px
+
+    #command
+      width: 100%
+      border: none
+      outline: none
+      font-family: 'DroidSansMonoRegular'
+
+    &.visible
+      border-top: 1px solid #ddd
+

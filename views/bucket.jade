@@ -1,0 +1,4 @@
+h3 {{view.title}}
+{{#each task in view.content.tasks}}
+{{view App.TaskView contentBinding="task"}}
+{{/each}}

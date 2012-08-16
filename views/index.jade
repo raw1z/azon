@@ -1,0 +1,17 @@
+extends layout
+
+block content
+  h1.title Azon
+
+  script(type="text/x-handlebars")
+    {{collection App.BucketCollectionView contentBinding="App.bucketsController"}}
+
+  script(type="text/x-handlebars", data-template-name="bucket")
+    include bucket
+
+  script(type="text/x-handlebars", data-template-name="command-box")
+    include command_box
+
+  script(type="text/x-handlebars", data-template-name="task")
+    include task
+
