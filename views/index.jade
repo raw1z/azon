@@ -1,7 +1,9 @@
 extends layout
 
 block content
-  h1.title Azon
+  h1.title
+    i.icon-tasks
+    != " Azon"
 
   script(type="text/x-handlebars")
     {{collection App.BucketCollectionView contentBinding="App.bucketsController"}}

@@ -12,15 +12,17 @@ setupShorcuts = ->
     if $(document.activeElement)[0] is $(document.body)[0]
       switch e.keyCode
         when 74 # j
-          console.log "down"
+          App.bucketsController.selectNextTask()
         when 75 # k
-          console.log "up"
+          App.bucketsController.selectPreviousTask()
         when 72 # h
-          App.bucketsController.selectPrevious()
+          App.bucketsController.selectPreviousBucket()
         when 76 # l
-          App.bucketsController.selectNext()
-        when 191 # :
+          App.bucketsController.selectNextBucket()
+        when 191,186 # :
           App.commandBoxController.show()
+        else
+          console.log e.keyCode
 
 window.configureWebsocket = ->
   socket = io.connect('http://localhost')
@@ -60,6 +62,15 @@ window.App.Bucket = Ember.Object.extend
   selected: false
   tasks: []
 
+  selectedTask: (->
+    @tasks.find (item) ->
+      item.selected is true
+  ).property().volatile()
+
+  selectedTaskIndex: (->
+    @tasks.indexOf @get('selectedTask')
+  ).property().volatile()
+
 window.App.Task = Ember.Object.extend
   description: null
   bucket: null
@@ -95,11 +106,10 @@ window.App.CommandBoxView = Ember.View.extend
 
 window.App.TaskView = Ember.View.extend
   templateName: 'task'
-  classNames: ['task']
+  classNameBindings: ['task', 'selected']
+  task: 'task'
   labelBinding: 'content.description'
-  showCheckbox: (->
-    @.get('content').get('bucket') is 'today'
-  ).property('content')
+  selectedBinding: 'content.selected'
 
 #############################################################################################
 # Controllers
@@ -112,14 +122,11 @@ window.App.BucketsController = Ember.ArrayController.extend
 
   createBuckets: ->
     buckets = {today: 'Today', tomorrow: 'Tomorrow', twoDaysFromNow: 'Two days from now', future: 'Future'}
-
     for id, name of buckets
       bucket = App.Bucket.create
         id: id
         name: name
-
       @content.pushObject bucket
-
     @content[0].set 'selected', true
 
   fetchBucketTasks: (bucket) ->
@@ -127,7 +134,6 @@ window.App.BucketsController = Ember.ArrayController.extend
       bucket
     else
       bucket.id
-
     $.get "/buckets/#{id}/tasks.json"
 
   fetchTasks: ->
@@ -139,31 +145,42 @@ window.App.BucketsController = Ember.ArrayController.extend
       bucket.set 'tasks', []
       for object in tasks
         bucket.tasks.pushObject App.Task.create(object)
+      bucket.tasks[0].set 'selected', true
 
   selectedBucket: (->
     @content.find (item) ->
       item.selected is true
   ).property('content').volatile()
 
-  selectedIndex: (->
+  selectedBucketIndex: (->
     @content.indexOf @get('selectedBucket')
   ).property('selectedBucket').volatile()
 
-  selectPrevious: ->
-    bucket = @get('selectedBucket')
-    selectedIndex = @content.indexOf bucket
-
+  selectPreviousBucket: ->
+    selectedIndex = @get 'selectedBucketIndex'
     if selectedIndex > 0
-      bucket.set 'selected', false
+      @content.objectAt(selectedIndex).set "selected", false
       @content.objectAt(selectedIndex-1).set "selected", true
 
-  selectNext: ->
-    bucket = @get('selectedBucket')
-    selectedIndex = @content.indexOf bucket
-
+  selectNextBucket: ->
+    selectedIndex = @get 'selectedBucketIndex'
     if selectedIndex < @content.length - 1
-      bucket.set 'selected', false
+      @content.objectAt(selectedIndex).set "selected", false
       @content.objectAt(selectedIndex+1).set "selected", true
+
+  selectPreviousTask: ->
+    bucket = @get 'selectedBucket'
+    selectedIndex = bucket.get 'selectedTaskIndex'
+    if selectedIndex > 0
+      bucket.tasks.objectAt(selectedIndex).set 'selected', false
+      bucket.tasks.objectAt(selectedIndex-1).set 'selected', true
+
+  selectNextTask: ->
+    bucket = @get 'selectedBucket'
+    selectedIndex = bucket.get 'selectedTaskIndex'
+    if selectedIndex < bucket.tasks.length - 1
+      bucket.tasks.objectAt(selectedIndex).set 'selected', false
+      bucket.tasks.objectAt(selectedIndex+1).set 'selected', true
 
 window.App.CommandBoxController = Ember.Object.extend
   visible: false
@@ -176,13 +193,15 @@ window.App.CommandBoxController = Ember.Object.extend
 
   show: ->
     @set 'visible', true
-    $('#command').val ""
-    $('#command').focus()
+    Ember.run.next this, ->
+      $('#command').val ":"
+      $('#command').focus()
 
   hide: ->
     @set 'visible', false
-    $('#command').val ""
-    $('#command').blur()
+    Ember.run.next this, ->
+      $('#command').val ""
+      $('#command').blur()
 
   run: ->
     $.post '/command.json', command: @getCommand(), (data) ->
@@ -194,7 +213,7 @@ window.App.CommandBoxController = Ember.Object.extend
     match = rx.exec $('#command').val()
     return {
       name: match[1],
-      target: match[2] ? "@#{App.bucketsController.get('selectedIndex')+1}",
+      target: match[2] ? "@#{App.bucketsController.get('selectedBucketIndex')+1}",
       value: match[3]
     }
 
