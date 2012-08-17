@@ -207,16 +207,20 @@ window.App.CommandBoxController = Ember.Object.extend
       $('#command').blur()
 
   run: ->
-    $.post '/command.json', command: @getCommand(), (data) ->
-      console.log data
+    command = @getCommand()
+    console.log command
+    if command isnt null
+      $.post '/command.json', command: @getCommand(), (data) ->
+        console.log data
     @hide()
 
   getCommand: ->
     rx = /(:[a-zA-Z_]+)\s?(@[1-4])?\s?(.*)?/
     match = rx.exec $('#command').val()
-    return {
-      name: match[1],
-      target: match[2] ? "@#{App.bucketsController.get('selectedBucketIndex')+1}",
-      value: match[3]
-    }
+    if match isnt null
+      {
+        name: match[1],
+        target: match[2] ? "@#{App.bucketsController.get('selectedBucketIndex')+1}",
+        value: match[3]
+      }
 
