@@ -13,9 +13,9 @@ Requirements
 Installation
 ============
 
-1- git clone https://github.com/raw1z/azon.git
-2- cd azon && npm install
-3- coffe app.coffee
+1. git clone https://github.com/raw1z/azon.git
+2. cd azon && npm install
+3. coffe app.coffee
 
 Legal
 =====
