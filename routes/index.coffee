@@ -1,3 +1,5 @@
+Logger = require("../models/logger").Logger
+Runner = require("../models/runner").Runner
 Task = require("../models/task").Task
 
 exports.index = (req, res) ->
@@ -6,7 +8,7 @@ exports.index = (req, res) ->
 exports.tasks = (req, res) ->
   Task.find bucket: req.params['bucket'], (err, tasks) ->
     if err
-      console.log err
+      Logger.alert err
     else
       global.io.sockets.emit 'tasks'
         bucket: req.params['bucket']
@@ -17,24 +19,8 @@ exports.tasks = (req, res) ->
 
 exports.command = (req, res) ->
   command = req.body['command']
-
-  if command.name == ':new'
-    bucket = switch command.target
-      when '@1' then 'today'
-      when '@2' then 'tomorrow'
-      when '@3' then 'twoDaysFromNow'
-      when '@4' then 'future'
-
-    task = new Task
-      description: command.value
-      bucket: bucket
-      createdAt: Date.now()
-
-    task.save (err) ->
-      if err
-        console.log err
-      else
-        global.io.sockets.emit 'update bucket', bucket
+  runner = new Runner()
+  runner.run command.name, command.target, command.value
 
   res.send
     status: 'success'

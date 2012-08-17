@@ -36,6 +36,9 @@ window.configureWebsocket = ->
   socket.on 'update bucket', (bucketId) ->
     App.bucketsController.fetchBucketTasks(bucketId)
 
+  socket.on 'log info', (data) ->
+    console.log data
+
 #############################################################################################
 # Application
 #############################################################################################
