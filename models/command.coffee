@@ -28,8 +28,12 @@ class Command
     else
       @next?.run(name, bucketName, taskId, value)
 
+  notifyBucketUpdate: (name, updatedTask) ->
+    global.io.sockets.emit 'update bucket', bucket: name, updatedTask: updatedTask
+
 class NewTaskCommand extends Command
   constructor: ->
+    self = this
     super ':new', ':n', (bucket, taskId, value) ->
       task = new Task
         description: value
@@ -40,25 +44,27 @@ class NewTaskCommand extends Command
         if err
           Logger.alert err
         else
-          global.io.sockets.emit 'update bucket', bucket
+          self.notifyBucketUpdate bucket, taskId
 
 class ChangeTaskCommand extends Command
   constructor: ->
+    self = this
     super ':change', ':ch', (bucket, taskId, value) ->
       Task.findOneAndUpdate { _id: taskId }, { description: value }, (err, task) ->
         if err
           Logger.alert err
         else
-          global.io.sockets.emit 'update bucket', bucket
+          self.notifyBucketUpdate bucket, taskId
 
 class CloseTaskCommand extends Command
   constructor: ->
+    self = this
     super ':close', ':cl', (bucket, taskId, value) ->
       Task.findOneAndUpdate { _id: taskId }, { bucket: 'done' }, (err, task) ->
         if err
           Logger.alert err
         else
-          global.io.sockets.emit 'update bucket', bucket
+          self.notifyBucketUpdate bucket, taskId
 
 exports.NewTaskCommand = NewTaskCommand
 exports.ChangeTaskCommand = ChangeTaskCommand

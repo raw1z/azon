@@ -34,8 +34,8 @@ window.configureWebsocket = ->
   socket.on 'tasks', (data) ->
     App.bucketsController.populateBucket(data.bucket, data.tasks)
 
-  socket.on 'update bucket', (bucketId) ->
-    App.bucketsController.fetchBucketTasks(bucketId)
+  socket.on 'update bucket', (data) ->
+    App.bucketsController.fetchBucketTasks(data.bucket)
 
   socket.on 'log info', (data) ->
     console.log data
@@ -82,6 +82,9 @@ window.App.Task = Ember.Object.extend
   description: null
   bucket: null
   selected: false
+  id: (->
+    @_id
+  ).property()
 
 #############################################################################################
 # Views
@@ -89,11 +92,10 @@ window.App.Task = Ember.Object.extend
 window.App.BucketView = Ember.View.extend
   templateName: 'bucket'
   tagName: 'section'
-  classNameBindings: ['label', 'spanWidth', 'selected']
+  classNameBindings: ['label', 'spanWidth', 'content.selected']
   label: 'bucket'
   spanWidth: (() -> "span#{12/App.bucketsController.content.length}").property()
   titleBinding: 'content.name'
-  selectedBinding: 'content.selected'
 
 window.App.BucketCollectionView = Ember.CollectionView.extend
   classNames: ['row-fluid']
@@ -103,8 +105,7 @@ window.App.BucketCollectionView = Ember.CollectionView.extend
 window.App.CommandBoxView = Ember.View.extend
   templateName: 'command-box'
   elementId: 'command-box'
-  classNameBindings: ['visible']
-  visibleBinding: 'App.commandBoxController.visible'
+  classNameBindings: ['App.commandBoxController.visible']
 
   didInsertElement: ->
     $('form#command_form').submit (event)->
@@ -113,10 +114,12 @@ window.App.CommandBoxView = Ember.View.extend
 
 window.App.TaskView = Ember.View.extend
   templateName: 'task'
-  classNameBindings: ['task', 'selected']
+  classNameBindings: ['task', 'content.selected']
   task: 'task'
   labelBinding: 'content.description'
-  selectedBinding: 'content.selected'
+  elementId: (->
+    @content.get 'id'
+  ).property()
 
 #############################################################################################
 # Controllers
