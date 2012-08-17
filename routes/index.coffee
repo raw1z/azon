@@ -20,8 +20,7 @@ exports.tasks = (req, res) ->
 exports.command = (req, res) ->
   command = req.body['command']
   runner = new Runner()
-  runner.run command.name, command.target, command.value
-
+  runner.run command.name, command.bucket, command.task, command.value
   res.send
     status: 'success'
     command: command

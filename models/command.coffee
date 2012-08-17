@@ -9,33 +9,28 @@ class Command
     @next = null
 
   link: (next) ->
-    if @next is null
-      @next = next
-    else
+    if @next
       @next.link next
-
-  run: (name, target, value) ->
-    if (@name is name) or (@aliases.indexOf(name) isnt -1)
-      @logic(target, value)
     else
-      @next?.run(name, target, value)
+      @next = next
 
-class EmptyCommand extends Command
-  constructor: ->
-    super ':', (target, value) ->
-      Logger.info 'Empty command'
-        target: target
-        value: value
+  getBucket: (name) ->
+    switch name
+      when '@1' then 'today'
+      when '@2' then 'tomorrow'
+      when '@3' then 'twoDaysFromNow'
+      when '@4' then 'future'
+      else name
+
+  run: (name, bucketName, taskId, value) ->
+    if (@name is name) or (@aliases.indexOf(name) isnt -1)
+      @logic(@getBucket(bucketName), taskId, value)
+    else
+      @next?.run(name, bucketName, taskId, value)
 
 class NewTaskCommand extends Command
   constructor: ->
-    super ':new', ':n', (target, value) ->
-      bucket = switch target
-        when '@1' then 'today'
-        when '@2' then 'tomorrow'
-        when '@3' then 'twoDaysFromNow'
-        when '@4' then 'future'
-
+    super ':new', ':n', (bucket, taskId, value) ->
       task = new Task
         description: value
         bucket: bucket
@@ -47,5 +42,24 @@ class NewTaskCommand extends Command
         else
           global.io.sockets.emit 'update bucket', bucket
 
-exports.EmptyCommand = EmptyCommand
+class ChangeTaskCommand extends Command
+  constructor: ->
+    super ':change', ':ch', (bucket, taskId, value) ->
+      Task.findOneAndUpdate { _id: taskId }, { description: value }, (err, task) ->
+        if err
+          Logger.alert err
+        else
+          global.io.sockets.emit 'update bucket', bucket
+
+class CloseTaskCommand extends Command
+  constructor: ->
+    super ':close', ':cl', (bucket, taskId, value) ->
+      Task.findOneAndUpdate { _id: taskId }, { bucket: 'done' }, (err, task) ->
+        if err
+          Logger.alert err
+        else
+          global.io.sockets.emit 'update bucket', bucket
+
 exports.NewTaskCommand = NewTaskCommand
+exports.ChangeTaskCommand = ChangeTaskCommand
+exports.CloseTaskCommand = CloseTaskCommand

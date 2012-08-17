@@ -39,6 +39,9 @@ window.configureWebsocket = ->
   socket.on 'log info', (data) ->
     console.log data
 
+  socket.on 'log erro', (data) ->
+    console.log data
+
 #############################################################################################
 # Application
 #############################################################################################
@@ -220,7 +223,8 @@ window.App.CommandBoxController = Ember.Object.extend
     if match isnt null
       {
         name: match[1],
-        target: match[2] ? "@#{App.bucketsController.get('selectedBucketIndex')+1}",
+        bucket: match[2] ? "@#{App.bucketsController.get('selectedBucketIndex')+1}",
+        task: App.bucketsController.get('selectedBucket').get('selectedTask')._id,
         value: match[3]
       }
 
