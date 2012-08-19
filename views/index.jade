@@ -1,12 +1,16 @@
 extends layout
 
 block content
-  h1.title
-    i.icon-tasks
-    != " Azon"
+  script(type="text/x-handlebars", data-template-name="application")
+    .container-fluid
+      h1.title
+        i.icon-tasks
+        != " Azon"
 
-  script(type="text/x-handlebars")
-    {{collection App.BucketCollectionView contentBinding="App.bucketsController"}}
+      {{outlet}}
+
+  script(type="text/x-handlebars", data-template-name="buckets")
+    {{collection App.BucketCollectionView contentBinding="controller"}}
 
   script(type="text/x-handlebars", data-template-name="bucket")
     include bucket

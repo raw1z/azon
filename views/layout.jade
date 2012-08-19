@@ -5,7 +5,6 @@ html
     != css('application')
 
   body
-    .container-fluid
-      block content
-      script(type='text/javascript', src='/socket.io/socket.io.js')
-      != js('application')
+    block content
+    script(type='text/javascript', src='/socket.io/socket.io.js')
+    != js('application')
