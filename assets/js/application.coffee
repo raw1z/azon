@@ -151,12 +151,14 @@ window.App.BucketsController = Ember.ArrayController.extend
       @content.objectAt(@selectedBucketIndex).set "selected", false
       @content.objectAt(@selectedBucketIndex-1).set "selected", true
       @selectedBucketIndex--
+      App.tasksController.updateSelection()
 
   selectNextBucket: ->
     if @selectedBucketIndex < @content.length - 1
       @content.objectAt(@selectedBucketIndex).set "selected", false
       @content.objectAt(@selectedBucketIndex+1).set "selected", true
       @selectedBucketIndex++
+      App.tasksController.updateSelection()
 
 window.App.TasksController = Ember.Object.extend
   scheduledHiglight: null
@@ -210,6 +212,13 @@ window.App.TasksController = Ember.Object.extend
       bucket.tasks.objectAt(selectedIndex+1).set 'selected', true
       @selectedTaskIndexes[bucket.id]++
 
+  updateSelection: ->
+    bucket = App.bucketsController.get 'selectedBucket'
+    selectedIndex = @get 'selectedTaskIndex'
+    for task in bucket.tasks
+      task.set 'selected', false
+    bucket.tasks[selectedIndex]?.set 'selected', true
+
 window.App.CommandBoxController = Ember.Object.extend
   visible: false
   view: null
@@ -233,20 +242,19 @@ window.App.CommandBoxController = Ember.Object.extend
 
   run: ->
     command = @getCommand()
-    console.log command
-    if command isnt null
+    if command
       $.post '/command.json', command: @getCommand(), (data) ->
         console.log data
     @hide()
 
   getCommand: ->
-    rx = /(:[a-zA-Z_]+)\s?(@[1-4])?\s?(.*)?/
+    rx = /(:[a-zA-Z_!]+)\s?(@[1-6])?\s?(.*)?/
     match = rx.exec $('#command').val()
     if match isnt null
       {
         name: match[1],
         bucket: match[2] ? "@#{App.bucketsController.get('selectedBucketIndex')+1}",
-        task: App.tasksController.get('selectedTask')._id,
+        task: App.tasksController.get('selectedTask')?._id,
         value: match[3]
       }
 

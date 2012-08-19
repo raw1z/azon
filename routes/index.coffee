@@ -6,7 +6,7 @@ exports.index = (req, res) ->
   res.render 'index'
 
 exports.tasks = (req, res) ->
-  Task.find bucket: req.params['bucket'], (err, tasks) ->
+  Task.find(bucket: req.params['bucket']).sort('createdAt').exec (err, tasks) ->
     if err
       Logger.alert err
     else

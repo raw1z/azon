@@ -20,6 +20,8 @@ class Command
       when '@2' then 'tomorrow'
       when '@3' then 'twoDaysFromNow'
       when '@4' then 'future'
+      when '@5' then 'done'
+      when '@6' then 'trash'
       else name
 
   run: (name, bucketName, taskId, value) ->
@@ -30,6 +32,11 @@ class Command
 
   notifyBucketUpdate: (name, updatedTask) ->
     global.io.sockets.emit 'update bucket', bucket: name, updatedTask: updatedTask
+
+class RootCommand extends Command
+  constructor: ->
+    self = this
+    super ':', (bucket, taskId, value) ->
 
 class NewTaskCommand extends Command
   constructor: ->
@@ -50,7 +57,7 @@ class ChangeTaskCommand extends Command
   constructor: ->
     self = this
     super ':change', ':ch', (bucket, taskId, value) ->
-      Task.findOneAndUpdate { _id: taskId }, { description: value }, (err, task) ->
+      Task.findOneAndUpdate { _id: taskId }, { description: value, updatedAt: Date.now() }, (err, task) ->
         if err
           Logger.alert err
         else
@@ -59,13 +66,72 @@ class ChangeTaskCommand extends Command
 class CloseTaskCommand extends Command
   constructor: ->
     self = this
-    super ':close', ':cl', (bucket, taskId, value) ->
-      Task.findOneAndUpdate { _id: taskId }, { bucket: 'done' }, (err, task) ->
+    super ':close', ':cl', 'check', 'ck', (bucket, taskId, value) ->
+      Task.findOneAndUpdate { _id: taskId }, { bucket: 'done', updatedAt: Date.now() }, (err, task) ->
         if err
           Logger.alert err
         else
           self.notifyBucketUpdate bucket, taskId
 
-exports.NewTaskCommand = NewTaskCommand
-exports.ChangeTaskCommand = ChangeTaskCommand
-exports.CloseTaskCommand = CloseTaskCommand
+class MoveTaskToBucketCommand extends Command
+  constructor: ->
+    self = this
+    super ':moveTo', ':mt', (bucket, taskId, value) ->
+      Task.findOne _id: taskId, (err, task) ->
+        if err
+          Logger.alert err
+        else
+          oldBucket = task.bucket
+          if oldBucket isnt bucket
+            task.update bucket: bucket, updatedAt: Date.now(), (err, task) ->
+              if err
+                Logger.alert err
+              else
+                self.notifyBucketUpdate oldBucket, taskId
+                self.notifyBucketUpdate bucket, taskId
+
+class EmptyBucketCommand extends Command
+  constructor: ->
+    self = this
+    super ':empty!', ':trash!', (bucket, taskId, value) ->
+      Task.update { bucket: bucket }, { bucket: 'trash', updatedAt: Date.now() }, { multi: true }, (err) ->
+        if err
+          Logger.alert err
+        else
+          self.notifyBucketUpdate bucket, taskId
+
+class EmptyAllBucketsCommand extends Command
+  constructor: ->
+    self = this
+    super ':emptyAll!', ':trashAll!', (bucket, taskId, value) ->
+      Task.update { bucket: { $nin: ['done', 'trash'] } }, { bucket: 'trash', updatedAt: Date.now() }, { multi: true }, (err) ->
+        if err
+          Logger.alert err
+        else
+          self.notifyBucketUpdate 'today', null
+          self.notifyBucketUpdate 'tomorrow', null
+          self.notifyBucketUpdate 'twoDaysFromNow', null
+          self.notifyBucketUpdate 'future', null
+
+class DeleteTaskCommand extends Command
+  constructor: ->
+    self = this
+    super ':delete', ':del', ':remove', ':rm', (bucket, taskId, value) ->
+      Task.findOneAndUpdate { _id: taskId }, { bucket: 'trash' }, (err) ->
+        if err
+          Logger.alert err
+        else
+          self.notifyBucketUpdate bucket, taskId
+
+root = new RootCommand()
+commands = [
+  new NewTaskCommand(),
+  new ChangeTaskCommand(),
+  new CloseTaskCommand(),
+  new MoveTaskToBucketCommand(),
+  new EmptyBucketCommand(),
+  new EmptyAllBucketsCommand(),
+  new DeleteTaskCommand()
+]
+root.link command for command in commands
+exports.root = root
