@@ -13,9 +13,9 @@ setupShorcuts = ->
     if $(document.activeElement)[0] is $(document.body)[0]
       switch e.keyCode
         when 74 # j
-          App.bucketsController.selectNextTask()
+          App.tasksController.selectNextTask()
         when 75 # k
-          App.bucketsController.selectPreviousTask()
+          App.tasksController.selectPreviousTask()
         when 72 # h
           App.bucketsController.selectPreviousBucket()
         when 76 # l
@@ -29,13 +29,13 @@ window.configureWebsocket = ->
   socket = io.connect('http://localhost')
   socket.on 'connect', ->
     console.log "Connected to server"
-    App.bucketsController.fetchTasks()
+    App.tasksController.fetchTasks()
 
   socket.on 'tasks', (data) ->
     App.bucketsController.populateBucket(data.bucket, data.tasks)
 
   socket.on 'update bucket', (data) ->
-    App.bucketsController.fetchBucketTasks(data.bucket)
+    App.tasksController.fetchBucketTasks(data.bucket)
 
   socket.on 'log info', (data) ->
     console.log data
@@ -54,6 +54,8 @@ window.App = Ember.Application.create
     App.commandBoxController = App.CommandBoxController.create()
     App.commandBoxController.initialize()
 
+    App.tasksController = App.TasksController.create()
+
     configureWebsocket()
     setupShorcuts()
 
@@ -68,15 +70,6 @@ window.App.Bucket = Ember.Object.extend
   position: 0
   selected: false
   tasks: []
-
-  selectedTask: (->
-    @tasks.find (item) ->
-      item.selected is true
-  ).property().volatile()
-
-  selectedTaskIndex: (->
-    @tasks.indexOf @get('selectedTask')
-  ).property().volatile()
 
 window.App.Task = Ember.Object.extend
   description: null
@@ -126,6 +119,7 @@ window.App.TaskView = Ember.View.extend
 #############################################################################################
 window.App.BucketsController = Ember.ArrayController.extend
   content: []
+  selectedBucketIndex: 0
 
   initialize: ->
     @createBuckets()
@@ -139,6 +133,39 @@ window.App.BucketsController = Ember.ArrayController.extend
       @content.pushObject bucket
     @content[0].set 'selected', true
 
+  populateBucket: (bucketId, tasks) ->
+    for bucket in @content when bucket.id == bucketId
+      bucket.set 'tasks', []
+      for object in tasks
+        bucket.tasks.pushObject App.Task.create(object)
+
+      selectedIndex = App.tasksController.get 'selectedTaskIndex'
+      bucket.tasks[selectedIndex]?.set 'selected', true
+
+  selectedBucket: (->
+    @content.objectAt @selectedBucketIndex
+  ).property().volatile()
+
+  selectPreviousBucket: ->
+    if @selectedBucketIndex > 0
+      @content.objectAt(@selectedBucketIndex).set "selected", false
+      @content.objectAt(@selectedBucketIndex-1).set "selected", true
+      @selectedBucketIndex--
+
+  selectNextBucket: ->
+    if @selectedBucketIndex < @content.length - 1
+      @content.objectAt(@selectedBucketIndex).set "selected", false
+      @content.objectAt(@selectedBucketIndex+1).set "selected", true
+      @selectedBucketIndex++
+
+window.App.TasksController = Ember.Object.extend
+  scheduledHiglight: null
+  selectedTaskIndexes:
+    today: 0
+    tomorrow: 0
+    twoDaysFromNow: 0
+    future: 0
+
   fetchBucketTasks: (bucket) ->
     id = if typeof bucket is "string"
       bucket
@@ -147,50 +174,38 @@ window.App.BucketsController = Ember.ArrayController.extend
     $.get "/buckets/#{id}/tasks.json"
 
   fetchTasks: ->
-    for bucket in @content
+    for bucket in App.bucketsController.content
       @fetchBucketTasks(bucket)
 
-  populateBucket: (bucketId, tasks) ->
-    for bucket in @content when bucket.id == bucketId
-      bucket.set 'tasks', []
-      for object in tasks
-        bucket.tasks.pushObject App.Task.create(object)
-      bucket.tasks[0].set 'selected', true
+  selectedTaskIndex: (->
+    bucket = App.bucketsController.get 'selectedBucket'
+    if @selectedTaskIndexes[bucket.id] < 0
+      @selectedTaskIndexes[bucket.id] = 0
+    else if @selectedTaskIndexes[bucket.id] >= bucket.tasks.length
+      @selectedTaskIndexes[bucket.id] = bucket.tasks.length - 1
+    @selectedTaskIndexes[bucket.id]
+  ).property().volatile()
 
-  selectedBucket: (->
-    @content.find (item) ->
-      item.selected is true
-  ).property('content').volatile()
-
-  selectedBucketIndex: (->
-    @content.indexOf @get('selectedBucket')
-  ).property('selectedBucket').volatile()
-
-  selectPreviousBucket: ->
-    selectedIndex = @get 'selectedBucketIndex'
-    if selectedIndex > 0
-      @content.objectAt(selectedIndex).set "selected", false
-      @content.objectAt(selectedIndex-1).set "selected", true
-
-  selectNextBucket: ->
-    selectedIndex = @get 'selectedBucketIndex'
-    if selectedIndex < @content.length - 1
-      @content.objectAt(selectedIndex).set "selected", false
-      @content.objectAt(selectedIndex+1).set "selected", true
+  selectedTask: (->
+    bucket = App.bucketsController.get 'selectedBucket'
+    bucket.tasks.objectAt @get('selectedTaskIndex')
+  ).property().volatile()
 
   selectPreviousTask: ->
-    bucket = @get 'selectedBucket'
-    selectedIndex = bucket.get 'selectedTaskIndex'
+    bucket = App.bucketsController.get 'selectedBucket'
+    selectedIndex = @get 'selectedTaskIndex'
     if selectedIndex > 0
       bucket.tasks.objectAt(selectedIndex).set 'selected', false
       bucket.tasks.objectAt(selectedIndex-1).set 'selected', true
+      @selectedTaskIndexes[bucket.id]--
 
   selectNextTask: ->
-    bucket = @get 'selectedBucket'
-    selectedIndex = bucket.get 'selectedTaskIndex'
+    bucket = App.bucketsController.get 'selectedBucket'
+    selectedIndex = @get 'selectedTaskIndex'
     if selectedIndex < bucket.tasks.length - 1
       bucket.tasks.objectAt(selectedIndex).set 'selected', false
       bucket.tasks.objectAt(selectedIndex+1).set 'selected', true
+      @selectedTaskIndexes[bucket.id]++
 
 window.App.CommandBoxController = Ember.Object.extend
   visible: false
@@ -228,7 +243,7 @@ window.App.CommandBoxController = Ember.Object.extend
       {
         name: match[1],
         bucket: match[2] ? "@#{App.bucketsController.get('selectedBucketIndex')+1}",
-        task: App.bucketsController.get('selectedBucket').get('selectedTask')._id,
+        task: App.tasksController.get('selectedTask')._id,
         value: match[3]
       }
 
