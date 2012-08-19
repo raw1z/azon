@@ -6,6 +6,17 @@
 @import "font-awesome-ie7.css"
 @import "nib"
 
+bucket-header-border-color = #ddd
+selected-bucket-header-color = #10B3F0
+
+task-border-color = #ddd
+task-background-color = #eee
+selected-task-border-color = selected-bucket-header-color
+selected-task-background-color = #f9f9f9
+
+command-box-border-color = #ddd
+command-box-font = 'DroidSansMonoRegular'
+
 body
   font: 16px "SofiaProLightRegular", "Lucida Grande", Helvetica, Arial, sans-serif
   padding-top: 1em
@@ -17,41 +28,44 @@ body
 
   .task
     clear: both
-    border: 1px solid #ddd
-    border-radius: 3px
-    margin: 0.5em 0 0 0
-    padding: 0.5em
-    background-color: #eee
-
-    form
-      margin: 0
+    border: 1px solid task-border-color
+    border-radius: 5px
+    margin: 5px 0 0 0
+    padding: 5px
+    background-color: task-background-color
 
   .bucket
     h3
       text-align: center
-      border-bottom: 1px solid #ddd
+      border-bottom: 1px solid bucket-header-border-color
     &.selected
       h3
-        color: #f60
+        color: selected-bucket-header-color
+        border-color: selected-bucket-header-color
 
   .bucket.selected
+    .task
+      background-color: selected-task-border-color
+      color: #fff
+      border-color: darken(selected-task-border-color, 10)
     .task.selected
-      border: 1px solid #f60
-      background-color: #f9f9f9
+      border: 1px solid selected-task-border-color
+      background-color: selected-task-background-color
+      color: selected-task-border-color
 
   #command-box
     position: absolute
     bottom: 0
     width: 100%
     height: 26px
-    border-top: 1px solid #ddd
+    border-top: 1px solid command-box-border-color
     visibility: hidden
 
     #command
       width: 100%
       border: none
       outline: none
-      font-family: 'DroidSansMonoRegular'
+      font-family: command-box-font
 
     &.visible
       visibility: visible
