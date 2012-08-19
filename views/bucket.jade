@@ -1,4 +1,7 @@
-h3 {{view.title}}
+h3
+  .number {{view.number}}
+  .text {{view.title}}
+
 {{#each task in view.content.tasks}}
 {{view App.TaskView contentBinding="task"}}
 {{/each}}
