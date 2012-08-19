@@ -179,10 +179,13 @@ window.App.TasksController = Ember.Object.extend
 
   selectedTaskIndex: (->
     bucket = App.bucketsController.get 'selectedBucket'
+
+    if @selectedTaskIndexes[bucket.id] >= bucket.tasks.length
+      @selectedTaskIndexes[bucket.id] = bucket.tasks.length - 1
+
     if @selectedTaskIndexes[bucket.id] < 0
       @selectedTaskIndexes[bucket.id] = 0
-    else if @selectedTaskIndexes[bucket.id] >= bucket.tasks.length
-      @selectedTaskIndexes[bucket.id] = bucket.tasks.length - 1
+
     @selectedTaskIndexes[bucket.id]
   ).property().volatile()
 
