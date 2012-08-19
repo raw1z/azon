@@ -24,11 +24,12 @@ class Command
       when '@6' then 'trash'
       else name
 
-  run: (name, bucketName, taskId, value) ->
-    if (@name is name) or (@aliases.indexOf(name) isnt -1)
-      @logic(@getBucket(bucketName), taskId, value)
+  run: (env) ->
+    if (@name is env.command.name) or (@aliases.indexOf(env.command.name) isnt -1)
+      env.command.bucket = @getBucket(env.command.bucket)
+      @logic(env)
     else
-      @next?.run(name, bucketName, taskId, value)
+      @next?.run(env)
 
   notifyBucketUpdate: (name, updatedTask) ->
     global.io.sockets.emit 'update bucket', bucket: name, updatedTask: updatedTask
@@ -36,75 +37,76 @@ class Command
 class RootCommand extends Command
   constructor: ->
     self = this
-    super ':', (bucket, taskId, value) ->
+    super ':', (env) ->
 
 class NewTaskCommand extends Command
   constructor: ->
     self = this
-    super ':new', ':n', (bucket, taskId, value) ->
+    super ':new', ':n', (env) ->
       task = new Task
-        description: value
-        bucket: bucket
+        description: env.command.value
+        bucket: env.command.bucket
         createdAt: Date.now()
+        _owner: env.user._id
 
       task.save (err) ->
         if err
           Logger.alert err
         else
-          self.notifyBucketUpdate bucket, taskId
+          self.notifyBucketUpdate env.command.bucket, task._id
 
 class ChangeTaskCommand extends Command
   constructor: ->
     self = this
-    super ':change', ':ch', (bucket, taskId, value) ->
-      Task.findOneAndUpdate { _id: taskId }, { description: value, updatedAt: Date.now() }, (err, task) ->
+    super ':change', ':ch', (env) ->
+      Task.findOneAndUpdate { _id: env.command.taskId }, { description: env.command.value, updatedAt: Date.now() }, (err, task) ->
         if err
           Logger.alert err
         else
-          self.notifyBucketUpdate bucket, taskId
+          self.notifyBucketUpdate env.command.bucket, env.command.taskId
 
 class CloseTaskCommand extends Command
   constructor: ->
     self = this
-    super ':close', ':cl', 'check', 'ck', (bucket, taskId, value) ->
-      Task.findOneAndUpdate { _id: taskId }, { bucket: 'done', updatedAt: Date.now() }, (err, task) ->
+    super ':close', ':cl', 'check', 'ck', (env) ->
+      Task.findOneAndUpdate { _id: env.command.taskId }, { bucket: 'done', updatedAt: Date.now() }, (err, task) ->
         if err
           Logger.alert err
         else
-          self.notifyBucketUpdate bucket, taskId
+          self.notifyBucketUpdate env.command.bucket, env.command.taskId
 
 class MoveTaskToBucketCommand extends Command
   constructor: ->
     self = this
-    super ':moveTo', ':mt', (bucket, taskId, value) ->
-      Task.findOne _id: taskId, (err, task) ->
+    super ':moveTo', ':mt', (env) ->
+      Task.findOne _id: env.command.taskId, (err, task) ->
         if err
           Logger.alert err
         else
           oldBucket = task.bucket
-          if oldBucket isnt bucket
-            task.update bucket: bucket, updatedAt: Date.now(), (err, task) ->
+          if oldBucket isnt env.command.bucket
+            task.update bucket: env.command.bucket, updatedAt: Date.now(), (err, task) ->
               if err
                 Logger.alert err
               else
-                self.notifyBucketUpdate oldBucket, taskId
-                self.notifyBucketUpdate bucket, taskId
+                self.notifyBucketUpdate oldBucket, env.command.taskId
+                self.notifyBucketUpdate env.command.bucket, env.command.taskId
 
 class EmptyBucketCommand extends Command
   constructor: ->
     self = this
-    super ':empty!', ':trash!', (bucket, taskId, value) ->
-      Task.update { bucket: bucket }, { bucket: 'trash', updatedAt: Date.now() }, { multi: true }, (err) ->
+    super ':empty!', ':trash!', (env) ->
+      Task.update { bucket: env.command.bucket, _owner: env.user._id }, { bucket: 'trash', updatedAt: Date.now() }, { multi: true }, (err) ->
         if err
           Logger.alert err
         else
-          self.notifyBucketUpdate bucket, taskId
+          self.notifyBucketUpdate env.command.bucket, env.command.taskId
 
 class EmptyAllBucketsCommand extends Command
   constructor: ->
     self = this
-    super ':emptyAll!', ':trashAll!', (bucket, taskId, value) ->
-      Task.update { bucket: { $nin: ['done', 'trash'] } }, { bucket: 'trash', updatedAt: Date.now() }, { multi: true }, (err) ->
+    super ':emptyAll!', ':trashAll!', (env) ->
+      Task.update { bucket: { $nin: ['done', 'trash'] }, _owner: env.user._id }, { bucket: 'trash', updatedAt: Date.now() }, { multi: true }, (err) ->
         if err
           Logger.alert err
         else
@@ -116,18 +118,19 @@ class EmptyAllBucketsCommand extends Command
 class DeleteTaskCommand extends Command
   constructor: ->
     self = this
-    super ':delete', ':del', ':remove', ':rm', (bucket, taskId, value) ->
-      Task.findOneAndUpdate { _id: taskId }, { bucket: 'trash' }, (err) ->
+    super ':delete', ':del', ':remove', ':rm', (env) ->
+      Task.findOneAndUpdate { _id: env.command.taskId }, { bucket: 'trash', updatedAt: Date.now() }, (err) ->
         if err
           Logger.alert err
         else
-          self.notifyBucketUpdate bucket, taskId
+          self.notifyBucketUpdate env.command.bucket, env.command.taskId
 
 class ShiftBucketCommand extends Command
   constructor: ->
     self = this
-    super ':shift!', ':sh!', (bucket, taskId, value) ->
-      switch bucket
+    super ':shift!', ':sh!', (env) ->
+      self.env = env
+      switch env.command.bucket
         when 'tomorrow'
           self.shift 'tomorrow', 'today'
         when 'twoDaysFromNow'
@@ -137,7 +140,7 @@ class ShiftBucketCommand extends Command
 
   shift: (from, to) ->
     self = this
-    Task.update { bucket: from }, { bucket: to }, { multi: true }, (err) ->
+    Task.update { bucket: from, _owner: self.env.user._id }, { bucket: to, updatedAt: Date.now() }, { multi: true }, (err) ->
       if err
         Logger.alert err
       else
@@ -146,11 +149,29 @@ class ShiftBucketCommand extends Command
 
 class ShiftAllBucketsCommand extends Command
   constructor: ->
-    super ':shiftAll!', ':sha!', (bucket, taskId, value) ->
+    super ':shiftAll!', ':sha!', (env) ->
       command = new ShiftBucketCommand()
-      command.logic('tomorrow', taskId, value)
-      command.logic('twoDaysFromNow', taskId, value)
-      command.logic('future', taskId, value)
+
+      command.logic
+        user: env.user
+        command:
+          bucket: 'tomorrow'
+          taskId: env.command.taskId
+          value: env.command.value
+
+      command.logic
+        user: env.user
+        command:
+          bucket: 'twoDaysFromNow'
+          taskId: env.command.taskId
+          value: env.command.value
+
+      command.logic
+        user: env.user
+        command:
+          bucket: 'future'
+          taskId: env.command.taskId
+          value: env.command.value
 
 root = new RootCommand()
 commands = [

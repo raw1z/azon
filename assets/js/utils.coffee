@@ -19,7 +19,10 @@ window.configureWebsocket = ->
   socket = io.connect('http://localhost')
   socket.on 'connect', ->
     console.log "Connected to server"
-    App.router.get('tasksController').fetchTasks()
+    App.initialize()
+    App.router.get('commandBoxController').initialize()
+    setupShorcuts()
+    console.log "Application started"
 
   socket.on 'tasks', (data) ->
     App.router.get('bucketsController').populateBucket(data.bucket, data.tasks)

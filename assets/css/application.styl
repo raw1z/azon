@@ -70,3 +70,38 @@ body
     &.visible
       visibility: visible
 
+#user-box
+  position: absolute
+  border-radius: 5px
+  top: 50%
+  left: 50%
+  width: 170px
+  height: 82px
+  margin-left: -(@width / 2)
+  margin-top: -(@height / 2)
+  padding: 18px 18px 10px 18px
+  border: 1px solid task-border-color
+  background-color: selected-task-background-color
+
+  h2
+    text-align: center
+    margin-bottom: 1em
+
+  a
+    display: block
+    margin-bottom: 2px
+    &:first-child
+      margin-top: -3px
+
+#session
+  position: absolute
+  top: 20px
+  right: 20px
+  z-index: 100
+
+  a, a:link, a:visited, a:focus
+    color: selected-bucket-header-color
+    text-decoration: none
+  a:hover
+    text-decoration: underline
+

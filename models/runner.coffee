@@ -4,7 +4,7 @@ class Runner
   constructor: ->
     @command = Command.root
 
-  run: (name, bucketName, taskId, value) ->
-    @command.run(name, bucketName, taskId, value)
+  run: (env) ->
+    @command.run(env)
 
 exports.Runner = Runner

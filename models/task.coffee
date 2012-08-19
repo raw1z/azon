@@ -8,6 +8,9 @@ TaskSchema = new Schema
   bucket: String
   createdAt: Date
   updatedAt: Date
+  _owner:
+    type: Schema.Types.ObjectId
+    ref: 'User'
 
 TaskSchema.pre 'save', (next) ->
   @updatedAt = new Date()

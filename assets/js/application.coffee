@@ -7,9 +7,11 @@
 
 #= require app
 #= require command-box
+#= require home
+#= require user
 #= require buckets
 #= require tasks
 #= require utils
 
 jQuery ->
-  App.initialize()
+  configureWebsocket()

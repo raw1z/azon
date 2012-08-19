@@ -38,6 +38,13 @@ window.App.BucketCollectionView = Ember.CollectionView.extend
 
 window.App.BucketsView = Ember.View.extend
   templateName: 'buckets'
+  didInsertElement: ->
+    @get('controller').set 'content', App.Bucket.all()
+    App.router.get('tasksController').fetchTasks()
+    Ember.run.next ->
+      $('#logout-link').click (event) ->
+        event.preventDefault()
+        $(this).closest('form').submit()
 
 #############################################################################################
 # Controllers
