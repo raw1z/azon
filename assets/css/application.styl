@@ -38,10 +38,24 @@ body
     h3
       text-align: center
       border-bottom: 1px solid bucket-header-border-color
+      padding-bottom: 5px
+      .text
+        display: block
+      .number
+        border-radius: 20px
+        display: inline-block
+        background-color: #202020
+        color: #fff
+        width: 27px
+        margin-right: 5px
+
     &.selected
       h3
         color: selected-bucket-header-color
         border-color: selected-bucket-header-color
+        .number
+          background-color: selected-bucket-header-color
+          color: #fff
 
   .bucket.selected
     .task

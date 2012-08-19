@@ -30,6 +30,13 @@ window.App.BucketView = Ember.View.extend
   label: 'bucket'
   spanWidth: (() -> "span#{12/App.router.get("bucketsController").content.length}").property()
   titleBinding: 'content.name'
+  number: (->
+    switch @content.id
+      when 'today' then 1
+      when 'tomorrow' then 2
+      when 'twoDaysFromNow' then 3
+      when 'future' then 4
+  ).property()
 
 window.App.BucketCollectionView = Ember.CollectionView.extend
   classNames: ['row-fluid']
