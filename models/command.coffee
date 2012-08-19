@@ -123,6 +123,35 @@ class DeleteTaskCommand extends Command
         else
           self.notifyBucketUpdate bucket, taskId
 
+class ShiftBucketCommand extends Command
+  constructor: ->
+    self = this
+    super ':shift!', ':sh!', (bucket, taskId, value) ->
+      switch bucket
+        when 'tomorrow'
+          self.shift 'tomorrow', 'today'
+        when 'twoDaysFromNow'
+          self.shift 'twoDaysFromNow', 'tomorrow'
+        when 'future'
+          self.shift 'future', 'twoDaysFromNow'
+
+  shift: (from, to) ->
+    self = this
+    Task.update { bucket: from }, { bucket: to }, { multi: true }, (err) ->
+      if err
+        Logger.alert err
+      else
+        self.notifyBucketUpdate from, null
+        self.notifyBucketUpdate to, null
+
+class ShiftAllBucketsCommand extends Command
+  constructor: ->
+    super ':shiftAll!', ':sha!', (bucket, taskId, value) ->
+      command = new ShiftBucketCommand()
+      command.logic('tomorrow', taskId, value)
+      command.logic('twoDaysFromNow', taskId, value)
+      command.logic('future', taskId, value)
+
 root = new RootCommand()
 commands = [
   new NewTaskCommand(),
@@ -131,7 +160,9 @@ commands = [
   new MoveTaskToBucketCommand(),
   new EmptyBucketCommand(),
   new EmptyAllBucketsCommand(),
-  new DeleteTaskCommand()
+  new DeleteTaskCommand(),
+  new ShiftBucketCommand(),
+  new ShiftAllBucketsCommand()
 ]
 root.link command for command in commands
 exports.root = root
