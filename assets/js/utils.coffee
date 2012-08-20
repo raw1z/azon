@@ -10,7 +10,7 @@ window.setupShorcuts = ->
           App.router.get('bucketsController').selectPreviousBucket()
         when 76 # l
           App.router.get('bucketsController').selectNextBucket()
-        when 191,186 # :
+        when 191,186,59 # :
           App.router.get('commandBoxController').show()
         else
           console.log e.keyCode
