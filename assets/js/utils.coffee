@@ -12,8 +12,8 @@ window.setupShorcuts = ->
           App.router.get('bucketsController').selectNextBucket()
         when 191,186,59 # :
           App.router.get('commandBoxController').show()
-        else
-          console.log e.keyCode
+        when 27
+          return false # needed because of firefox on mac os x
 
 window.configureWebsocket = ->
   socket = io.connect('http://localhost')
