@@ -5,11 +5,14 @@ window.App.UserFormView = Ember.View.extend
   attributeBindings: ['action', 'method']
   method: 'post'
   actionBinding: 'parentView.action'
+  iconBinding: 'parentView.icon'
+  titleBinding: 'parentView.title'
   elementId: 'user-form'
 
 window.App.LoginView = Ember.View.extend
   templateName: 'login'
   action: '/login.json'
+  title: 'Login'
   didInsertElement: ->
     $('#user-form input[type="text"]').focus()
     $('#user-form').submit (event) ->
@@ -20,6 +23,7 @@ window.App.LoginView = Ember.View.extend
 
 window.App.RegisterView = App.LoginView.extend
   action: '/register.json'
+  title: 'Register'
 
 window.App.User = Ember.Object.extend
   username: null
