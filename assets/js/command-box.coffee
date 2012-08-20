@@ -38,7 +38,7 @@ window.App.CommandBoxController = Ember.Object.extend
       $.post "/command/#{command.name}.json", args:command.args ? {} , (data) ->
         console.log 'run command:', command, data
         if data.status is 'success' and data.redirect
-          window.location = data.redirect
+          window.location = "##{data.redirect}"
 
     @hide()
 

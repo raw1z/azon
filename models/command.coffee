@@ -170,6 +170,30 @@ class LogoutCommand extends Command
           status: 'success'
           redirect: '/'
 
+class LoginCommand extends Command
+  constructor: ->
+    super ':login', ':signin', no, (req, res, next) ->
+      if req.commandRequest.user
+        res.send
+          status: 'failure'
+          error: 'already logged in'
+      else
+        res.send
+          status: 'success'
+          redirect: '/login'
+
+class RegisterCommand extends Command
+  constructor: ->
+    super ':register', ':signout', no, (req, res, next) ->
+      if req.commandRequest.user
+        res.send
+          status: 'failure'
+          error: 'already logged in'
+      else
+        res.send
+          status: 'success'
+          redirect: '/register'
+
 exports.watch = (app) ->
   commands = [
     new NewTaskCommand(),
@@ -181,7 +205,9 @@ exports.watch = (app) ->
     new DeleteTaskCommand(),
     new ShiftBucketCommand(),
     new ShiftAllBucketsCommand(),
-    new LogoutCommand()
+    new LogoutCommand(),
+    new LoginCommand(),
+    new RegisterCommand()
   ]
 
   for command in commands
