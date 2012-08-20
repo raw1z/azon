@@ -36,6 +36,8 @@ app.delete '/logout', routes.logout
 server = http.createServer(app).listen app.get('port'), ->
   console.log("Express server listening on port " + app.get('port'));
 
+require('./models/command').configure(app)
+
 mongoose = require 'mongoose'
 mongoose.connect 'localhost', '#azon', (err) ->
   throw err if err
