@@ -13,14 +13,12 @@ exports.tasks = (req, res) ->
       if err
         Logger.alert err
       else
-        global.io.sockets.emit 'tasks'
+        res.send
+          status: 'success'
           bucket: req.params['bucket']
           tasks: tasks
    else
      res.send status: 'failure'
-
-  res.send
-    status: 'success'
 
 exports.command = (req, res) ->
   userId = req.session.userId

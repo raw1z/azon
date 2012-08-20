@@ -33,11 +33,10 @@ window.App.TasksController = Ember.Object.extend
     future: 0
 
   fetchBucketTasks: (bucket) ->
-    id = if typeof bucket is "string"
-      bucket
-    else
-      bucket.id
-    $.get "/buckets/#{id}/tasks.json"
+    bucket = bucket.id unless typeof bucket is "string"
+    $.getJSON "/buckets/#{bucket}/tasks.json", (data) ->
+      if data.status is 'success'
+        App.router.get('bucketsController').populateBucket(data.bucket, data.tasks)
 
   fetchTasks: ->
     for bucket in App.router.get('bucketsController').content

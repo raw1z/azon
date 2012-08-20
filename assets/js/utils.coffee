@@ -24,9 +24,6 @@ window.configureWebsocket = ->
     setupShorcuts()
     console.log "Application started"
 
-  socket.on 'tasks', (data) ->
-    App.router.get('bucketsController').populateBucket(data.bucket, data.tasks)
-
   socket.on 'update bucket', (data) ->
     App.router.get('tasksController').fetchBucketTasks(data.bucket)
 
