@@ -1,4 +1,11 @@
 window.setupShorcuts = ->
+  $("input").live 'keydown', (e) ->
+    switch e.keyCode
+      when 27 # remove the focus from the input when the escape key is pressed
+        $(this).blur()
+        App.router.get('commandBoxController').hide()
+        return false
+
   $('#command').live 'keyup', (e) ->
     switch e.keyCode
       when 8, 88, 72, 46 # ensured that the starting colon can't de deleted (backspace, cmd/ctrl+x, ctrl+h, delete)
