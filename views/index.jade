@@ -22,10 +22,7 @@ block content
   script(type="text/x-handlebars", data-template-name="buckets")
     {{#if App.router.applicationController.currentUser}}
     #session
-      form(action="logout", method="post")
-        span.username {{App.router.applicationController.currentUser.username}} | 
-        a(href="#", id="logout-link") Logout
-        input(type="hidden", name="_method", value="delete")
+      span.username {{App.router.applicationController.currentUser.username}}
     {{/if}}
     {{collection App.BucketCollectionView contentBinding="controller"}}
 
