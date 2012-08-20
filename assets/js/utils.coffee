@@ -30,6 +30,7 @@ window.setupShorcuts = ->
         when 191,186,59 # :
           App.router.get('commandBoxController').show()
         when 27
+          App.router.get('commandBoxController').hide()
           return false # needed because of firefox on mac os x
 
 window.configureWebsocket = ->
