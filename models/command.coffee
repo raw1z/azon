@@ -162,6 +162,14 @@ class ShiftAllBucketsCommand extends Command
       ShiftCommand.shift.apply this, [req, res, next, 'future', 'twoDaysFromNow']
       res.send status: 'success'
 
+class LogoutCommand extends Command
+  constructor: ->
+    super ':logout!', ':signout!', yes, (req, res, next) ->
+      req.session.destroy ->
+        res.send
+          status: 'success'
+          redirect: '/'
+
 exports.watch = (app) ->
   commands = [
     new NewTaskCommand(),
@@ -172,7 +180,8 @@ exports.watch = (app) ->
     new EmptyAllBucketsCommand(),
     new DeleteTaskCommand(),
     new ShiftBucketCommand(),
-    new ShiftAllBucketsCommand()
+    new ShiftAllBucketsCommand(),
+    new LogoutCommand()
   ]
 
   for command in commands

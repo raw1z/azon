@@ -37,6 +37,9 @@ window.App.CommandBoxController = Ember.Object.extend
     if command
       $.post "/command/#{command.name}.json", args:command.args ? {} , (data) ->
         console.log 'run command:', command, data
+        if data.status is 'success' and data.redirect
+          window.location = data.redirect
+
     @hide()
 
   run: ->
@@ -57,3 +60,4 @@ window.App.CommandBoxController = Ember.Object.extend
         command.args.taskId ?= App.router.get('tasksController').get('selectedTask')?._id
 
       return command
+
