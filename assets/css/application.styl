@@ -93,19 +93,11 @@ body
   height: 82px
   margin-left: -(@width / 2)
   margin-top: -(@height / 2)
-  padding: 18px 18px 10px 18px
-  border: 1px solid task-border-color
-  background-color: selected-task-background-color
 
-  h2
-    text-align: center
-    margin-bottom: 1em
-
-  a
+  span
     display: block
-    margin-bottom: 2px
-    &:first-child
-      margin-top: -3px
+    font-size: 1.5em
+    color: #ccc
 
 #session
   position: absolute
@@ -117,10 +109,3 @@ body
   padding: 0.5em 1em 0.5em 1em
   font-size: 0.8em
   font-weight: bold
-
-  a, a:link, a:visited, a:focus
-    color: selected-bucket-header-color
-    text-decoration: none
-  a:hover
-    text-decoration: underline
-
