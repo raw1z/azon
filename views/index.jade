@@ -11,21 +11,13 @@ block content
 
   script(type="text/x-handlebars", data-template-name="home")
     | <div id='user-box'>
-    |   <a href='#' {{action showLoginForm}} class='btn btn-large'>
-    |     <i class='icon-signin'></i> Login
-    |   </a>
-    |   <a href='#' {{action showRegisterForm}} class='btn btn-large'>
-    |    <i class='icon-user'></i> Register
-    |   </a>
+    |  <span>:login / :register</span>
     | </div>
 
   script(type="text/x-handlebars", data-template-name="buckets")
     {{#if App.router.applicationController.currentUser}}
     #session
-      form(action="logout", method="post")
-        span.username {{App.router.applicationController.currentUser.username}} | 
-        a(href="#", id="logout-link") Logout
-        input(type="hidden", name="_method", value="delete")
+      span.username {{App.router.applicationController.currentUser.username}}
     {{/if}}
     {{collection App.BucketCollectionView contentBinding="controller"}}
 

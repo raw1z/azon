@@ -27,7 +27,7 @@ app.configure 'development', ->
 
 app.get '/', routes.index
 app.get '/buckets/:bucket/tasks.json', routes.tasks
-app.post '/command.json', routes.command
+app.post '/command/:command.json', routes.command
 app.get '/user.json', routes.user
 app.post '/register.json', routes.register
 app.post '/login.json', routes.login
@@ -35,6 +35,8 @@ app.delete '/logout', routes.logout
 
 server = http.createServer(app).listen app.get('port'), ->
   console.log("Express server listening on port " + app.get('port'));
+
+require('./models/command').watch(app)
 
 mongoose = require 'mongoose'
 mongoose.connect 'localhost', '#azon', (err) ->

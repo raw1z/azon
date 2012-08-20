@@ -1,189 +1,217 @@
-Logger = require('./logger').Logger
 Task = require("./task").Task
 
 class Command
-  constructor: (name, aliases..., logic) ->
+  constructor: (name, aliases..., needsUser, logic) ->
     @name = name
     @aliases = aliases
     @logic = logic
-    @next = null
+    @needsUser = needsUser
 
-  link: (next) ->
-    if @next
-      @next.link next
+  canRunCommand: (req) ->
+    name = req.commandRequest.name
+    if (@name is name) or (@aliases.indexOf(name) isnt -1)
+      if @needsUser then req.commandRequest.user? else yes
     else
-      @next = next
+      no
 
-  getBucket: (name) ->
-    switch name
-      when '@1' then 'today'
-      when '@2' then 'tomorrow'
-      when '@3' then 'twoDaysFromNow'
-      when '@4' then 'future'
-      when '@5' then 'done'
-      when '@6' then 'trash'
-      else name
-
-  run: (env) ->
-    if (@name is env.command.name) or (@aliases.indexOf(env.command.name) isnt -1)
-      env.command.bucket = @getBucket(env.command.bucket)
-      @logic(env)
-    else
-      @next?.run(env)
+  middleware: ->
+    self = this
+    (req, res, next) ->
+      if req.commandRequest and self.canRunCommand(req)
+        console.log req.commandRequest
+        self.logic(req, res, next)
+      else
+        next()
 
   notifyBucketUpdate: (name, updatedTask) ->
     global.io.sockets.emit 'update bucket', bucket: name, updatedTask: updatedTask
 
-class RootCommand extends Command
-  constructor: ->
-    self = this
-    super ':', (env) ->
+class InvalidCommand
+  @middleware: ->
+    (req, res, next) ->
+      if req.commandRequest
+        res.send
+          status: 'failure'
+          error: 'unknown command'
+      else
+        next()
 
 class NewTaskCommand extends Command
   constructor: ->
     self = this
-    super ':new', ':n', (env) ->
+    super ':new', ':n', yes, (req, res, next) ->
       task = new Task
-        description: env.command.value
-        bucket: env.command.bucket
+        description: req.commandRequest.value
+        bucket: req.commandRequest.bucket
         createdAt: Date.now()
-        _owner: env.user._id
+        _owner: req.commandRequest.user._id
 
       task.save (err) ->
         if err
-          Logger.alert err
+          next err
         else
-          self.notifyBucketUpdate env.command.bucket, task._id
+          self.notifyBucketUpdate req.commandRequest.bucket, task._id
+          res.send status: 'success'
 
 class ChangeTaskCommand extends Command
   constructor: ->
     self = this
-    super ':change', ':ch', (env) ->
-      Task.findOneAndUpdate { _id: env.command.taskId }, { description: env.command.value, updatedAt: Date.now() }, (err, task) ->
+    super ':change', ':ch', yes, (req, res, next) ->
+      Task.findOneAndUpdate { _id: req.commandRequest.taskId }, { description: req.commandRequest.value, updatedAt: Date.now() }, (err, task) ->
         if err
-          Logger.alert err
+          next err
         else
-          self.notifyBucketUpdate env.command.bucket, env.command.taskId
+          self.notifyBucketUpdate req.commandRequest.bucket, req.commandRequest.taskId
+          res.send status: 'success'
 
 class CloseTaskCommand extends Command
   constructor: ->
     self = this
-    super ':close', ':cl', 'check', 'ck', (env) ->
-      Task.findOneAndUpdate { _id: env.command.taskId }, { bucket: 'done', updatedAt: Date.now() }, (err, task) ->
+    super ':close', ':cl', 'check', 'ck', yes, (req, res, next) ->
+      Task.findOneAndUpdate { _id: req.commandRequest.taskId }, { bucket: 'done', updatedAt: Date.now() }, (err, task) ->
         if err
-          Logger.alert err
+          next err
         else
-          self.notifyBucketUpdate env.command.bucket, env.command.taskId
+          self.notifyBucketUpdate req.commandRequest.bucket, req.commandRequest.taskId
+          res.send status: 'success'
 
 class MoveTaskToBucketCommand extends Command
   constructor: ->
     self = this
-    super ':moveTo', ':mt', (env) ->
-      Task.findOne _id: env.command.taskId, (err, task) ->
+    super ':moveTo', ':mt', yes, (req, res, next) ->
+      Task.findOne _id: req.commandRequest.taskId, (err, task) ->
         if err
-          Logger.alert err
+          next err
         else
           oldBucket = task.bucket
-          if oldBucket isnt env.command.bucket
-            task.update bucket: env.command.bucket, updatedAt: Date.now(), (err, task) ->
+          if oldBucket isnt req.commandRequest.bucket
+            task.update bucket: req.commandRequest.bucket, updatedAt: Date.now(), (err, task) ->
               if err
-                Logger.alert err
+                next err
               else
-                self.notifyBucketUpdate oldBucket, env.command.taskId
-                self.notifyBucketUpdate env.command.bucket, env.command.taskId
+                self.notifyBucketUpdate oldBucket, req.commandRequest.taskId
+                self.notifyBucketUpdate req.commandRequest.bucket, req.commandRequest.taskId
+                res.send status: 'success'
 
 class EmptyBucketCommand extends Command
   constructor: ->
     self = this
-    super ':empty!', ':trash!', (env) ->
-      Task.update { bucket: env.command.bucket, _owner: env.user._id }, { bucket: 'trash', updatedAt: Date.now() }, { multi: true }, (err) ->
+    super ':empty!', ':trash!', yes, (req, res, next) ->
+      Task.update { bucket: req.commandRequest.bucket, _owner: req.commandRequest.user._id }, { bucket: 'trash', updatedAt: Date.now() }, { multi: true }, (err) ->
         if err
-          Logger.alert err
+          next err
         else
-          self.notifyBucketUpdate env.command.bucket, env.command.taskId
+          self.notifyBucketUpdate req.commandRequest.bucket, req.commandRequest.taskId
+          res.send status: 'success'
 
 class EmptyAllBucketsCommand extends Command
   constructor: ->
     self = this
-    super ':emptyAll!', ':trashAll!', (env) ->
-      Task.update { bucket: { $nin: ['done', 'trash'] }, _owner: env.user._id }, { bucket: 'trash', updatedAt: Date.now() }, { multi: true }, (err) ->
+    super ':emptyAll!', ':trashAll!', yes, (req, res, next) ->
+      Task.update { bucket: { $nin: ['done', 'trash'] }, _owner: req.commandRequest.user._id }, { bucket: 'trash', updatedAt: Date.now() }, { multi: true }, (err) ->
         if err
-          Logger.alert err
+          next err
         else
           self.notifyBucketUpdate 'today', null
           self.notifyBucketUpdate 'tomorrow', null
           self.notifyBucketUpdate 'twoDaysFromNow', null
           self.notifyBucketUpdate 'future', null
+          res.send status: 'success'
 
 class DeleteTaskCommand extends Command
   constructor: ->
     self = this
-    super ':delete', ':del', ':remove', ':rm', (env) ->
-      Task.findOneAndUpdate { _id: env.command.taskId }, { bucket: 'trash', updatedAt: Date.now() }, (err) ->
+    super ':delete', ':del', ':remove', ':rm', yes, (req, res, next) ->
+      Task.findOneAndUpdate { _id: req.commandRequest.taskId }, { bucket: 'trash', updatedAt: Date.now() }, (err) ->
         if err
-          Logger.alert err
+          next err
         else
-          self.notifyBucketUpdate env.command.bucket, env.command.taskId
+          self.notifyBucketUpdate req.commandRequest.bucket, req.commandRequest.taskId
+          res.send status: 'success'
 
-class ShiftBucketCommand extends Command
-  constructor: ->
+class ShiftCommand
+  @shift: (req, res, next, from, to) ->
+    console.log next
     self = this
-    super ':shift!', ':sh!', (env) ->
-      self.env = env
-      switch env.command.bucket
-        when 'tomorrow'
-          self.shift 'tomorrow', 'today'
-        when 'twoDaysFromNow'
-          self.shift 'twoDaysFromNow', 'tomorrow'
-        when 'future'
-          self.shift 'future', 'twoDaysFromNow'
-
-  shift: (from, to) ->
-    self = this
-    Task.update { bucket: from, _owner: self.env.user._id }, { bucket: to, updatedAt: Date.now() }, { multi: true }, (err) ->
+    Task.update { bucket: from, _owner: req.commandRequest.user._id }, { bucket: to, updatedAt: Date.now() }, { multi: true }, (err) ->
       if err
-        Logger.alert err
+        next err
       else
         self.notifyBucketUpdate from, null
         self.notifyBucketUpdate to, null
 
+class ShiftBucketCommand extends Command
+  constructor: ->
+    self = this
+    super ':shift!', ':sh!', yes, (req, res, next) ->
+      switch req.commandRequest.bucket
+        when 'tomorrow'
+          ShiftCommand.shift.apply this, [req, res, next, 'tomorrow', 'today']
+        when 'twoDaysFromNow'
+          ShiftCommand.shift.apply this, [req, res, next, 'twoDaysFromNow', 'tomorrow']
+        when 'future'
+          ShiftCommand.shift.apply this, [req, res, next, 'future', 'twoDaysFromNow']
+
+      res.send status: 'success'
+
 class ShiftAllBucketsCommand extends Command
   constructor: ->
-    super ':shiftAll!', ':sha!', (env) ->
-      command = new ShiftBucketCommand()
+    super ':shiftAll!', ':sha!', yes, (req, res, next) ->
+      ShiftCommand.shift.apply this, [req, res, next, 'tomorrow', 'today']
+      ShiftCommand.shift.apply this, [req, res, next, 'twoDaysFromNow', 'tomorrow']
+      ShiftCommand.shift.apply this, [req, res, next, 'future', 'twoDaysFromNow']
+      res.send status: 'success'
 
-      command.logic
-        user: env.user
-        command:
-          bucket: 'tomorrow'
-          taskId: env.command.taskId
-          value: env.command.value
+class LogoutCommand extends Command
+  constructor: ->
+    super ':logout!', ':signout!', yes, (req, res, next) ->
+      req.session.destroy ->
+        res.send
+          status: 'success'
+          redirect: '/'
 
-      command.logic
-        user: env.user
-        command:
-          bucket: 'twoDaysFromNow'
-          taskId: env.command.taskId
-          value: env.command.value
+class LoginCommand extends Command
+  constructor: ->
+    super ':login', ':signin', no, (req, res, next) ->
+      if req.commandRequest.user
+        res.send
+          status: 'failure'
+          error: 'already logged in'
+      else
+        res.send
+          status: 'success'
+          redirect: '/login'
 
-      command.logic
-        user: env.user
-        command:
-          bucket: 'future'
-          taskId: env.command.taskId
-          value: env.command.value
+class RegisterCommand extends Command
+  constructor: ->
+    super ':register', ':signout', no, (req, res, next) ->
+      if req.commandRequest.user
+        res.send
+          status: 'failure'
+          error: 'already logged in'
+      else
+        res.send
+          status: 'success'
+          redirect: '/register'
 
-root = new RootCommand()
-commands = [
-  new NewTaskCommand(),
-  new ChangeTaskCommand(),
-  new CloseTaskCommand(),
-  new MoveTaskToBucketCommand(),
-  new EmptyBucketCommand(),
-  new EmptyAllBucketsCommand(),
-  new DeleteTaskCommand(),
-  new ShiftBucketCommand(),
-  new ShiftAllBucketsCommand()
-]
-root.link command for command in commands
-exports.root = root
+exports.watch = (app) ->
+  commands = [
+    new NewTaskCommand(),
+    new ChangeTaskCommand(),
+    new CloseTaskCommand(),
+    new MoveTaskToBucketCommand(),
+    new EmptyBucketCommand(),
+    new EmptyAllBucketsCommand(),
+    new DeleteTaskCommand(),
+    new ShiftBucketCommand(),
+    new ShiftAllBucketsCommand(),
+    new LogoutCommand(),
+    new LoginCommand(),
+    new RegisterCommand()
+  ]
+
+  for command in commands
+    app.use command.middleware()
+
+  app.use InvalidCommand.middleware()
+

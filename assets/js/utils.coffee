@@ -25,11 +25,6 @@ window.configureWebsocket = ->
     console.log "Application started"
 
   socket.on 'update bucket', (data) ->
+    console.log "update bucket:", data
     App.router.get('tasksController').fetchBucketTasks(data.bucket)
-
-  socket.on 'log info', (data) ->
-    console.log data
-
-  socket.on 'log erro', (data) ->
-    console.log data
 

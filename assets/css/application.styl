@@ -31,7 +31,7 @@ body
     border: 1px solid task-border-color
     border-radius: 5px
     margin: 5px 0 0 0
-    padding: 5px
+    padding: 10px
     background-color: task-background-color
 
   .bucket
@@ -61,7 +61,7 @@ body
     .task
       background-color: selected-task-border-color
       color: #fff
-      border-color: darken(selected-task-border-color, 10)
+      border: none
     .task.selected
       border: 1px solid selected-task-border-color
       background-color: selected-task-background-color
@@ -93,29 +93,19 @@ body
   height: 82px
   margin-left: -(@width / 2)
   margin-top: -(@height / 2)
-  padding: 18px 18px 10px 18px
-  border: 1px solid task-border-color
-  background-color: selected-task-background-color
 
-  h2
-    text-align: center
-    margin-bottom: 1em
-
-  a
+  span
     display: block
-    margin-bottom: 2px
-    &:first-child
-      margin-top: -3px
+    font-size: 1.5em
+    color: #ccc
 
 #session
   position: absolute
-  top: 20px
+  top: 0
   right: 20px
   z-index: 100
-
-  a, a:link, a:visited, a:focus
-    color: selected-bucket-header-color
-    text-decoration: none
-  a:hover
-    text-decoration: underline
-
+  background-color: selected-bucket-header-color
+  color: #fff
+  padding: 0.5em 1em 0.5em 1em
+  font-size: 0.8em
+  font-weight: bold

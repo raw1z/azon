@@ -33,20 +33,31 @@ window.App.CommandBoxController = Ember.Object.extend
       $('#command').val ""
       $('#command').blur()
 
-  run: ->
-    command = @getCommand()
+  runCommand: (command) ->
     if command
-      $.post '/command.json', command: @getCommand(), (data) ->
-        console.log data
+      $.post "/command/#{command.name}.json", args:command.args ? {} , (data) ->
+        console.log 'run command:', command, data
+        if data.status is 'success' and data.redirect
+          window.location = "##{data.redirect}"
+
     @hide()
+
+  run: ->
+    @runCommand @getCommand()
 
   getCommand: ->
     rx = /(:[a-zA-Z_!]+)\s?(@[1-6])?\s?(.*)?/
     match = rx.exec $('#command').val()
     if match isnt null
-      {
-        name: match[1],
-        bucket: match[2] ? "@#{App.router.get('bucketsController').get('selectedBucketIndex')+1}",
-        task: App.router.get('tasksController').get('selectedTask')?._id,
-        value: match[3]
-      }
+      command =
+        name: match[1]
+        args:
+          bucket: match[2]
+          value: match[3]
+          
+      if App.router.get('applicationController').get("currentUser")
+        command.args.bucket ?= "@#{App.router.get('bucketsController').get('selectedBucketIndex')+1}"
+        command.args.taskId ?= App.router.get('tasksController').get('selectedTask')?._id
+
+      return command
+

@@ -61,6 +61,7 @@ window.App.BucketsController = Ember.ArrayController.extend
   selectedBucketIndex: 0
 
   populateBucket: (bucketId, tasks) ->
+    console.log 'populate bucket:', bucketId, tasks
     for bucket in @content when bucket.id == bucketId
       bucket.set 'tasks', []
       for object in tasks
