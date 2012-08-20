@@ -24,8 +24,8 @@ window.App.CommandBoxController = Ember.Object.extend
   show: ->
     @set 'visible', true
     Ember.run.next this, ->
-      $('#command').val ":"
       $('#command').focus()
+      $('#command').val ":"
 
   hide: ->
     @set 'visible', false
