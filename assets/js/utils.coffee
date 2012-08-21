@@ -37,10 +37,16 @@ window.configureWebsocket = ->
   socket = io.connect('http://localhost')
   socket.on 'connect', ->
     console.log "Connected to server"
-    App.initialize()
-    App.router.get('commandBoxController').initialize()
-    setupShorcuts()
-    console.log "Application started"
+    unless App.router
+      App.initialize()
+      App.router.get('commandBoxController').initialize()
+      setupShorcuts()
+      console.log "Application started"
+    else
+      App.router.get('tasksController').fetchBucketTasks 'today'
+      App.router.get('tasksController').fetchBucketTasks 'tomorrow'
+      App.router.get('tasksController').fetchBucketTasks 'twoDaysFromNow'
+      App.router.get('tasksController').fetchBucketTasks 'future'
 
   socket.on 'update bucket', (data) ->
     console.log "update bucket:", data

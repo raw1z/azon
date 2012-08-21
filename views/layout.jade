@@ -5,6 +5,12 @@ html
     != css('application')
 
   body
-    block content
+    .container-fluid
+      h1.title
+        i.icon-tasks
+        != " Azon"
+
+      block content
+
     script(type='text/javascript', src='/socket.io/socket.io.js')
     != js('application')
