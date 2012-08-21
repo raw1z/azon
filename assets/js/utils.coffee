@@ -5,16 +5,16 @@ window.setupShorcuts = ->
         $(this).blur()
         App.router.get('commandBoxController').hide()
         return false
+      when 74 # ctrl-j triggers the submit event of the command form
+        if e.ctrlKey
+          $(this).closest('form').submit()
+          return false
 
   $('#command').live 'keyup', (e) ->
     switch e.keyCode
       when 8, 88, 72, 46 # ensured that the starting colon can't de deleted (backspace, cmd/ctrl+x, ctrl+h, delete)
         if $(this).val().length is 0
           $(this).val(':')
-      when 74 # ctrl-j triggers the submit event of the command form
-        if e.ctrlKey
-          $(this).closest('form').submit()
-          return false
 
   $(document).keydown (e) ->
     if $(document.activeElement)[0] is $(document.body)[0]
