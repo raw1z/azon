@@ -7,8 +7,16 @@ class Command
     @logic = logic
     @needsUser = needsUser
 
+  processHelp: (req) ->
+    if req.commandRequest?.name in [':help', ':h', ':describe', ':desc']
+      req.commandRequest.help ?= []
+      unless req.commandRequest.value
+        req.commandRequest.help.push usage: @usage(), desc: @desc(), needsUser: @needsUser
+      else if req.commandRequest.value is @name
+        req.commandRequest.help.push usage: @usage(), desc: @desc(), needsUser: @needsUser
+
   canRunCommand: (req) ->
-    name = req.commandRequest.name
+    name = req.commandRequest?.name
     if (@name is name) or (@aliases.indexOf(name) isnt -1)
       if @needsUser then req.commandRequest.user? else yes
     else
@@ -17,7 +25,9 @@ class Command
   middleware: ->
     self = this
     (req, res, next) ->
-      if req.commandRequest and self.canRunCommand(req)
+      self.processHelp(req)
+
+      if self.canRunCommand(req)
         console.log req.commandRequest
         self.logic(req, res, next)
       else
@@ -53,6 +63,12 @@ class NewTaskCommand extends Command
           self.notifyBucketUpdate req.commandRequest.bucket, task._id
           res.send status: 'success'
 
+  usage: ->
+    ":new|:n [bucket] <description>"
+
+  desc: ->
+    "Create a new task. Unless the optional parameter [bucket] is given, the new task is created inside the currently selected bucket"
+
 class ChangeTaskCommand extends Command
   constructor: ->
     self = this
@@ -64,16 +80,28 @@ class ChangeTaskCommand extends Command
           self.notifyBucketUpdate req.commandRequest.bucket, req.commandRequest.taskId
           res.send status: 'success'
 
+  usage: ->
+    ":change|:ch <description>"
+
+  desc: ->
+    "Change the description of the currently selected task"
+
 class CloseTaskCommand extends Command
   constructor: ->
     self = this
-    super ':close', ':cl', 'check', 'ck', yes, (req, res, next) ->
+    super ':close', ':cl', ':check', ':ck', yes, (req, res, next) ->
       Task.findOneAndUpdate { _id: req.commandRequest.taskId }, { bucket: 'done', updatedAt: Date.now() }, (err, task) ->
         if err
           next err
         else
           self.notifyBucketUpdate req.commandRequest.bucket, req.commandRequest.taskId
           res.send status: 'success'
+
+  usage: ->
+    ":close|:cl|:check|:ck"
+
+  desc: ->
+    "Mark the current tasks as done. The task is then hidden from the bucket"
 
 class MoveTaskToBucketCommand extends Command
   constructor: ->
@@ -93,6 +121,12 @@ class MoveTaskToBucketCommand extends Command
                 self.notifyBucketUpdate req.commandRequest.bucket, req.commandRequest.taskId
                 res.send status: 'success'
 
+  usage: ->
+    ":moveTo|:mt <bucket>"
+
+  desc: ->
+    "Move the currently selected task to the given bucket"
+
 class EmptyBucketCommand extends Command
   constructor: ->
     self = this
@@ -103,6 +137,12 @@ class EmptyBucketCommand extends Command
         else
           self.notifyBucketUpdate req.commandRequest.bucket, req.commandRequest.taskId
           res.send status: 'success'
+
+  usage: ->
+    ":empty!|:trash! [bucket]"
+
+  desc: ->
+    "Delete all the tasks inside a bucket. unless the optional [bucket] parameter is given, this command runs on the currently selected bucket"
 
 class EmptyAllBucketsCommand extends Command
   constructor: ->
@@ -118,6 +158,12 @@ class EmptyAllBucketsCommand extends Command
           self.notifyBucketUpdate 'future', null
           res.send status: 'success'
 
+  usage: ->
+    ":emptyAll!|:trashAll!"
+
+  desc: ->
+    "Apply the :delete command to all the buckets"
+
 class DeleteTaskCommand extends Command
   constructor: ->
     self = this
@@ -128,6 +174,12 @@ class DeleteTaskCommand extends Command
         else
           self.notifyBucketUpdate req.commandRequest.bucket, req.commandRequest.taskId
           res.send status: 'success'
+
+  usage: ->
+    ":delete|:del|:remove|:rm"
+
+  desc: ->
+    "Delete the currently selected task"
 
 class ShiftCommand
   @shift: (req, res, next, from, to) ->
@@ -154,6 +206,12 @@ class ShiftBucketCommand extends Command
 
       res.send status: 'success'
 
+  usage: ->
+    ":shift!|:sh! [bucket]"
+
+  desc: ->
+    "Move all the tasks from a bucket to its immediate successor (@2 -> @1, @3 -@2, @4 -> @5). unless the optional [bucket] parameter is given, this command runs on the currently selected bucket"
+
 class ShiftAllBucketsCommand extends Command
   constructor: ->
     super ':shiftAll!', ':sha!', yes, (req, res, next) ->
@@ -162,6 +220,12 @@ class ShiftAllBucketsCommand extends Command
       ShiftCommand.shift.apply this, [req, res, next, 'future', 'twoDaysFromNow']
       res.send status: 'success'
 
+  usage: ->
+    ":shiftAll|:sha!"
+
+  desc: ->
+    "Apply the :shift command to all the buckets"
+
 class LogoutCommand extends Command
   constructor: ->
     super ':logout!', ':signout!', yes, (req, res, next) ->
@@ -169,6 +233,12 @@ class LogoutCommand extends Command
         res.send
           status: 'success'
           redirect: '/'
+
+  usage: ->
+    ":logout!|:signout!"
+
+  desc: ->
+    "Close the current user session"
 
 class LoginCommand extends Command
   constructor: ->
@@ -182,9 +252,15 @@ class LoginCommand extends Command
           status: 'success'
           redirect: '/login'
 
+  usage: ->
+    ":login|:signin"
+
+  desc: ->
+    "Redirect to the new user session form"
+
 class RegisterCommand extends Command
   constructor: ->
-    super ':register', ':signout', no, (req, res, next) ->
+    super ':register', ':signup', no, (req, res, next) ->
       if req.commandRequest.user
         res.send
           status: 'failure'
@@ -193,6 +269,25 @@ class RegisterCommand extends Command
         res.send
           status: 'success'
           redirect: '/register'
+
+  usage: ->
+    ":register|:signup"
+
+  desc: ->
+    "Redirect to the new user registration form"
+
+class HelpCommand extends Command
+  constructor: ->
+    super ':help', ':h', ':describe', ':desc', no, (req, res, next) ->
+      res.send
+        status: 'success'
+        help: req.commandRequest.help
+
+  usage: ->
+    ":help|:h|:describe|:desc [command]"
+
+  desc: ->
+    "Display the help. if the optional [command] parameter is given then only the help available for it will be displayed"
 
 exports.watch = (app) ->
   commands = [
@@ -213,5 +308,6 @@ exports.watch = (app) ->
   for command in commands
     app.use command.middleware()
 
+  app.use new HelpCommand().middleware()
   app.use InvalidCommand.middleware()
 
