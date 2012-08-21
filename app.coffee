@@ -3,6 +3,12 @@ stylus  = require 'stylus'
 routes  = require './routes' 
 http    = require 'http' 
 
+mongoose = require 'mongoose'
+mongoose.connect 'localhost', '#azon', (err) ->
+  throw err if err
+
+SessionStore = require 'session-mongoose'
+
 app = express()
 
 app.configure ->
@@ -17,7 +23,14 @@ app.configure ->
   app.use express.bodyParser()
   app.use express.methodOverride()
   app.use express.cookieParser('your secret here')
-  app.use express.session()
+  app.use express.session
+    cookie:
+      maxAge: 31557600000
+    secret: 'foo'
+    store: new SessionStore
+      url: "mongodb://localhost/session"
+      interval: 120000
+
   app.use express.static(publicDir)
   app.use require('connect-assets')()
   app.use app.router
@@ -37,10 +50,6 @@ server = http.createServer(app).listen app.get('port'), ->
   console.log("Express server listening on port " + app.get('port'));
 
 require('./models/command').watch(app)
-
-mongoose = require 'mongoose'
-mongoose.connect 'localhost', '#azon', (err) ->
-  throw err if err
 
 global.io = require('socket.io').listen(server, 'log level':2)
 

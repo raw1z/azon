@@ -14,6 +14,6 @@
     "socket.io": "0.9.10",
     "stylus": "0.29.0",
     "pwd": "0.0.2",
-    "connect-mongodb": "1.1.5"
+    "session-mongoose": "0.0.2"
   }
 }
