@@ -35,8 +35,6 @@ window.setupShorcuts = ->
       when 40
         e.preventDefault()
         App.router.get('commandHistoryController').down()
-      else
-        console.log e.keyCode
 
   $(document).keydown (e) ->
     if $(document.activeElement)[0] is $(document.body)[0]
@@ -54,6 +52,11 @@ window.setupShorcuts = ->
         when 27
           App.router.get('commandBoxController').hide()
           return false # needed because of firefox on mac os x
+        when 69
+          selectedTask = App.router.get('tasksController').get('selectedTask')
+          App.router.get('commandBoxController').show ":ch #{selectedTask.get('description')}"
+        else
+          console.log e.keyCode
 
 window.configureWebsocket = ->
   socket = io.connect()

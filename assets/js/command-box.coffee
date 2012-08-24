@@ -56,16 +56,16 @@ App.CommandBoxController = Ember.Object.extend
     view.appendTo('body')
     @history = []
 
-  show: ->
+  show: (input=':') ->
     @set 'visible', true
     Ember.run.next this, ->
       $('#command').focus()
-      App.router.get('commandHistoryController').reset()
+      App.router.get('commandHistoryController').reset(input)
 
   hide: ->
     @set 'visible', false
     Ember.run.next this, ->
-      $('#command').val ':'
+      $('#command_form').each -> @reset()
       $('#command').blur()
 
   runCommand: (command, callback) ->
@@ -99,9 +99,9 @@ App.CommandHistoryController = Ember.ArrayController.extend
         @content.pushObject command
     @reset()
  
-  reset: ->
+  reset: (input=':') ->
     @last = @content.length
-    @set 'currentInput', ':'
+    @set 'currentInput', input
 
   up: ->
     @last-- if @last > 0
