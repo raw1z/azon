@@ -118,15 +118,20 @@ class MoveTaskToBucketCommand extends Command
         if err
           next err
         else
-          oldBucket = task.bucket
-          if oldBucket isnt req.commandRequest.bucket
-            task.update bucket: req.commandRequest.bucket, updatedAt: Date.now(), (err, task) ->
-              if err
-                next err
-              else
-                self.notifyBucketUpdate oldBucket, req.commandRequest.taskId
-                self.notifyBucketUpdate req.commandRequest.bucket, req.commandRequest.taskId
-                res.send status: 'success'
+          if req.commandRequest.bucket
+            oldBucket = task.bucket
+            if oldBucket isnt req.commandRequest.bucket
+              task.update bucket: req.commandRequest.bucket, updatedAt: Date.now(), (err, task) ->
+                if err
+                  next err
+                else
+                  self.notifyBucketUpdate oldBucket, req.commandRequest.taskId
+                  self.notifyBucketUpdate req.commandRequest.bucket, req.commandRequest.taskId
+                  res.send status: 'success'
+            else
+              res.send status: 'success'
+          else
+            next()
 
   usage: ->
     ":moveTo|:mt <bucket>"

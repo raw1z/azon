@@ -1,7 +1,41 @@
 #############################################################################################
+# Models
+#############################################################################################
+App.Command = Ember.Object.extend
+  name: null
+  args: {}
+
+App.Command.reopenClass
+  parse: (str) ->
+    command = null
+    rx = /(:[a-zA-Z_!]+)\s?(@[1-4])?\s?(.*)?/
+    match = rx.exec str
+    if match isnt null
+      command = App.Command.create
+        input: str
+        name: match[1]
+        args:
+          bucket: do ->
+            return match[2] if match[2]?
+            if App.router.get('applicationController').get("currentUser")
+              return "@#{App.router.get('bucketsController').get('selectedBucketIndex')+1}"
+            else
+              return null
+
+          taskId: do ->
+            if App.router.get('applicationController').get("currentUser")
+              return App.router.get('tasksController').get('selectedTask')?._id
+            else
+              return null
+
+          value: match[3]
+
+    return command
+
+#############################################################################################
 # Views
 #############################################################################################
-window.App.CommandBoxView = Ember.View.extend
+App.CommandBoxView = Ember.View.extend
   templateName: 'command-box'
   elementId: 'command-box'
   classNameBindings: ['App.router.commandBoxController.visible']
@@ -14,49 +48,62 @@ window.App.CommandBoxView = Ember.View.extend
 #############################################################################################
 # Controllers
 #############################################################################################
-window.App.CommandBoxController = Ember.Object.extend
+App.CommandBoxController = Ember.Object.extend
   visible: false
 
   initialize: ->
     view = App.CommandBoxView.create()
     view.appendTo('body')
+    @history = []
 
   show: ->
     @set 'visible', true
     Ember.run.next this, ->
       $('#command').focus()
-      $('#command').val ":"
+      App.router.get('commandHistoryController').reset()
 
   hide: ->
     @set 'visible', false
     Ember.run.next this, ->
-      $('#command').val ""
+      $('#command').val ':'
       $('#command').blur()
 
-  runCommand: (command) ->
+  runCommand: (command, callback) ->
     @hide()
     if command
       $.post "/command/#{command.name}.json", args:command.args ? {} , (data) ->
-        console.log 'run command:', command, data
-        if data.status is 'success' and data.redirect
-          window.location = "##{data.redirect}"
+        callback?(command, data)
+
+  appendToHistory: (command) ->
+    App.router.get('commandHistoryController').append command
 
   run: ->
-    @runCommand @getCommand()
+    self = this
+    @runCommand App.Command.parse($('#command').val()), (command, responseData) ->
+      console.log 'command run:', command, responseData
+      self.appendToHistory command
 
-  getCommand: ->
-    rx = /(:[a-zA-Z_!]+)\s?(@[1-6])?\s?(.*)?/
-    match = rx.exec $('#command').val()
-    if match isnt null
-      command =
-        name: match[1]
-        args:
-          bucket: match[2]
-          value: match[3]
-          
-      if App.router.get('applicationController').get("currentUser")
-        command.args.bucket ?= "@#{App.router.get('bucketsController').get('selectedBucketIndex')+1}"
-        command.args.taskId ?= App.router.get('tasksController').get('selectedTask')?._id
+      if responseData.status is 'success' and responseData.redirect
+        window.location = "##{responseData.redirect}"
 
-      return command
+App.CommandHistoryController = Ember.ArrayController.extend
+  content: []
+  last: 0
+  currentInput: null
+
+  append: (command) ->
+    @content.pushObject command
+    @reset()
+ 
+  reset: ->
+    @last = @content.length
+    @set 'currentInput', ':'
+
+  up: ->
+    @last-- if @last > 0
+    @set 'currentInput', @content.objectAt(@last).input
+
+  down: ->
+    @last++ if @last < @content.length - 1
+    @set 'currentInput', @content.objectAt(@last).input
 

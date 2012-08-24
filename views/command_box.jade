@@ -1,3 +1,3 @@
 form(id='command_form')
-  input(type='text', name='command', spellcheck='false', autocomplete='off', id='command')
+  <input type='text' name='command' spellcheck='false' autocomplete='off' id='command' {{bindAttr value="App.router.commandHistoryController.currentInput"}} />
 

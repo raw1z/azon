@@ -31,8 +31,6 @@ exports.command = (req, res, next) ->
         when '@2' then 'tomorrow'
         when '@3' then 'twoDaysFromNow'
         when '@4' then 'future'
-        when '@5' then 'done'
-        when '@6' then 'trash'
         else args.bucket
 
   unless req.session.userId
@@ -61,17 +59,22 @@ exports.login = (req, res, next) ->
     if err
       next err
     else
-      pass = require 'pwd'
-      pass.hash req.body.password, user.salt, (err, hash) ->
-        if err
-          next err
-        else
-          if user.hash is hash
-            req.session.regenerate ->
-              req.session.userId = user._id
-              res.send status: 'success'
+      if user
+        pass = require 'pwd'
+        pass.hash req.body.password, user.salt, (err, hash) ->
+          if err
+            next err
           else
-            res.send status: 'failure'
+            if user.hash is hash
+              req.session.regenerate ->
+                req.session.userId = user._id
+                res.send status: 'success'
+            else
+              res.send status: 'failure'
+      else
+        res.send
+          status: 'failure'
+          error: 'user not found'
 
 exports.register = (req, res, next) ->
   pass = require 'pwd'

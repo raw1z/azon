@@ -15,17 +15,36 @@ window.setupShorcuts = ->
       when 8, 88, 72, 46 # ensured that the starting colon can't de deleted (backspace, cmd/ctrl+x, ctrl+h, delete)
         if $(this).val().length is 0
           $(this).val(':')
+      when 78 # alt-n navigate the history down
+        if e.altKey
+          App.router.get('commandHistoryController').down()
+          return false
+      when 80 # alt-p navigate the history up
+        if e.altKey
+          App.router.get('commandHistoryController').up()
+          return false
+
+  $('#command').live 'keydown', (e) ->
+    switch e.keyCode
+      when 38
+        e.preventDefault()
+        App.router.get('commandHistoryController').up()
+      when 40
+        e.preventDefault()
+        App.router.get('commandHistoryController').down()
+      else
+        console.log e.keyCode
 
   $(document).keydown (e) ->
     if $(document.activeElement)[0] is $(document.body)[0]
       switch e.keyCode
-        when 74 # j
+        when 74, 40 # j
           App.router.get('tasksController').selectNextTask()
-        when 75 # k
+        when 75, 38 # k
           App.router.get('tasksController').selectPreviousTask()
-        when 72 # h
+        when 72, 37 # h
           App.router.get('bucketsController').selectPreviousBucket()
-        when 76 # l
+        when 76, 39 # l
           App.router.get('bucketsController').selectNextBucket()
         when 191,186,59 # :
           App.router.get('commandBoxController').show()
@@ -34,7 +53,7 @@ window.setupShorcuts = ->
           return false # needed because of firefox on mac os x
 
 window.configureWebsocket = ->
-  socket = io.connect('http://localhost')
+  socket = io.connect()
   socket.on 'connect', ->
     console.log "Connected to server"
     unless App.router
