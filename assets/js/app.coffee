@@ -6,6 +6,7 @@ window.App = Ember.Application.create
       $.ajaxSetup async: false
       $.getJSON "/user.json", (data) ->
         user = data.user
+        $.ajaxSetup async: true
       return user
     ).property().volatile()
 
