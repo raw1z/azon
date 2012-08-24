@@ -9,6 +9,9 @@ window.setupShorcuts = ->
         if e.ctrlKey
           $(this).closest('form').submit()
           return false
+      when 85 # ctrl-u clears the command line
+        if e.altKey
+          App.router.get('commandHistoryController').reset()
 
   $('#command').live 'keyup', (e) ->
     switch e.keyCode
