@@ -2,7 +2,7 @@ Task = require("../models/task").Task
 User = require("../models/user").User
 
 exports.index = (req, res) ->
-  res.render 'index'
+  res.render 'index', app_env: req.app.settings.env
 
 exports.tasks = (req, res, next) ->
   userId = req.session.userId

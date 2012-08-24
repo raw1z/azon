@@ -11,6 +11,10 @@ html
         != " Azon"
 
       block content
+    
+    - if(app_env === 'production')
+      script(type='text/javascript')
+        console.log = function(){}
 
     script(type='text/javascript', src='/socket.io/socket.io.js')
     != js('application')
