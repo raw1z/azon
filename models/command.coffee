@@ -29,7 +29,14 @@ class Command
 
       if self.canRunCommand(req)
         console.log req.commandRequest
-        self.logic(req, res, next)
+        try
+          self.logic(req, res, next)
+        catch error
+          res.send
+            status: 'failure'
+            error: 'exception raised'
+            commandData: req.commandRequest
+            errorData: error
       else
         next()
 
