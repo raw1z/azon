@@ -92,7 +92,11 @@ App.CommandHistoryController = Ember.ArrayController.extend
   currentInput: null
 
   append: (command) ->
-    @content.pushObject command
+    if @content.length is 0
+      @content.pushObject command
+    else
+      unless @content[@content.length-1].input is command.input
+        @content.pushObject command
     @reset()
  
   reset: ->
