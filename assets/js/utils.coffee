@@ -35,28 +35,30 @@ window.setupShorcuts = ->
       when 40
         e.preventDefault()
         App.router.get('commandHistoryController').down()
+      when 9
+        e.preventDefault() # disable the tab key
+      else
+        console.log e.keyCode
 
-  $(document).keydown (e) ->
-    if $(document.activeElement)[0] is $(document.body)[0]
-      switch e.keyCode
-        when 74, 40 # j
-          App.router.get('tasksController').selectNextTask()
-        when 75, 38 # k
-          App.router.get('tasksController').selectPreviousTask()
-        when 72, 37 # h
-          App.router.get('bucketsController').selectPreviousBucket()
-        when 76, 39 # l
-          App.router.get('bucketsController').selectNextBucket()
-        when 191,186,59 # :
-          App.router.get('commandBoxController').show()
-        when 27
-          App.router.get('commandBoxController').hide()
-          return false # needed because of firefox on mac os x
-        when 69
-          selectedTask = App.router.get('tasksController').get('selectedTask')
-          App.router.get('commandBoxController').show ":ch #{selectedTask.get('description')}"
-        else
-          console.log e.keyCode
+$(document).keydown (e) ->
+  if $(document.activeElement)[0] is $(document.body)[0]
+    switch e.keyCode
+      when 74, 40 # j
+        App.router.get('tasksController').selectNextTask()
+      when 75, 38 # k
+        App.router.get('tasksController').selectPreviousTask()
+      when 72, 37 # h
+        App.router.get('bucketsController').selectPreviousBucket()
+      when 76, 39 # l
+        App.router.get('bucketsController').selectNextBucket()
+      when 191,186,59 # :
+        App.router.get('commandBoxController').show()
+      when 27
+        App.router.get('commandBoxController').hide()
+        return false # needed because of firefox on mac os x
+      when 69
+        selectedTask = App.router.get('tasksController').get('selectedTask')
+        App.router.get('commandBoxController').show ":ch #{selectedTask.get('description')}"
 
 window.configureWebsocket = ->
   socket = io.connect()
